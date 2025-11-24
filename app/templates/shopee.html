@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shopee Scraper</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛍️</text></svg>" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <button class="theme-toggle" id="themeToggle" title="Alternar modo escuro">🌙</button>
+
+    <div class="container">
+      <header class="header">
+        <h1>🛍️ Shopee Scraper</h1>
+        <p>Encontre os melhores produtos da Shopee</p>
+        <nav class="nav-links" style="margin-top: 15px;">
+          <a href="/">Mercado Livre</a>
+          <a href="/amazon">Amazon</a>
+          <a href="/shopee" class="active">Shopee</a>
+        </nav>
+      </header>
+
+      <main class="main-content" style="padding: 40px;">
+        <div class="tabs">
+          <button class="tab-btn active" onclick="showTab('busca', this)">🔍 Buscar Produtos</button>
+          <button class="tab-btn" onclick="showTab('link', this)">🔗 Analisar Link</button>
+          <button class="tab-btn" onclick="showTab('webhook', this)">📢 Enviar Webhook</button>
+          <button class="tab-btn" onclick="showTab('agendamento', this)">📅 Agendamento</button>
+        </div>
+
+        <div id="tab-busca" class="tab-content active">
+          <form class="search-form" id="shopeeSearchForm">
+            <div class="form-group">
+              <label for="shopeeProduto">Produto</label>
+              <input type="text" id="shopeeProduto" name="shopeeProduto" placeholder="Ex: smartphone samsung" required />
+            </div>
+            <button type="submit" class="btn" id="shopeeSearchBtn">Buscar Produtos</button>
+          </form>
+        </div>
+
+        <div id="tab-link" class="tab-content">
+          <form class="search-form" id="shopeeLinkForm">
+            <div class="form-group">
+              <label for="shopeeProdutoUrlSingle">Link do Produto (Shopee)</label>
+              <input type="url" id="shopeeProdutoUrlSingle" name="shopeeProdutoUrl" placeholder="https://shopee.com.br/..." required />
+            </div>
+            <button type="submit" class="btn" id="shopeeLinkBtn">Analisar Produto</button>
+          </form>
+        </div>
+
+        <div id="tab-webhook" class="tab-content">
+          <div class="webhook-container">
+            <div class="add-product-card">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="shopeeProductUrlQueue">🔗 Link do Produto</label>
+                  <input type="url" id="shopeeProductUrlQueue" placeholder="https://shopee.com.br/..."/>
+                </div>
+                <div class="form-group">
+                  <label for="shopeeAffiliateUrlQueue">💰 Link de Afiliado (opcional)</label>
+                  <input type="url" id="shopeeAffiliateUrlQueue" placeholder="https://link.afiliado..."/>
+                </div>
+              </div>
+              <button type="button" class="btn add-product-btn" id="shopeeAddProductBtn">➕ Adicionar Produto</button>
+            </div>
+            <div class="products-queue" id="shopeeProductsQueue">
+              <div class="queue-header">
+                <h4>🎯 Produtos na Fila <span id="shopeeQueueCount" class="queue-count">(0)</span></h4>
+                <button type="button" class="btn-secondary clear-queue-btn" id="shopeeClearQueueBtn">🗑️ Limpar Fila</button>
+              </div>
+              <div class="queue-list" id="shopeeQueueList"></div>
+            </div>
+            <div class="webhook-actions">
+              <form id="shopeeWebhookForm">
+                <button type="submit" class="btn-primary process-webhook-btn" id="shopeeWebhookBtn">
+                  <span class="btn-icon">🚀</span>
+                  <span class="btn-text">Processar Fila</span>
+                  <span class="btn-badge" id="shopeeProcessCount">0</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <div id="tab-agendamento" class="tab-content">
+            <div class="search-section">
+              <form class="search-form" id="filtroAgendamentoForm">
+                <div class="form-group">
+                  <label for="filtroStatus">Status</label>
+                  <select id="filtroStatus" name="status">
+                    <option value="agendado">Agendado</option>
+                    <option value="nao-agendado">Não Agendado</option>
+                    <option value="todos">Todos</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="filtroOrdem">Ordenar por</label>
+                  <select id="filtroOrdem" name="ordem">
+                    <option value="desc">Mais Recentes</option>
+                    <option value="asc">Mais Antigos</option>
+                  </select>
+                </div>
+              </form>
+              <div id="agendamento-list-container">
+                <h3>Produtos na Base de Dados (Visão Unificada):</h3>
+                <div id="agendamento-list" class="products-grid">
+                  <p>Carregando produtos...</p>
+                </div>
+              </div>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Processando...</p>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+          <div class="results-header">
+            <div class="results-count" id="resultsCount"></div>
+            <button class="clear-btn" id="clearBtn">Limpar Resultados</button>
+          </div>
+          <div class="products-grid" id="productsGrid"></div>
+        </div>
+
+        <div class="results-section" id="produtoSection" style="display: none">
+          <div class="results-header">
+            <div class="results-count">Produto Analisado</div>
+            <button class="clear-btn" id="clearProdutoBtn">Limpar</button>
+          </div>
+          <div id="produtoDetalhado"></div>
+        </div>
+
+        <div class="results-section" id="webhookMessageSection" style="display: none">
+            <div class="results-header">
+              <div class="results-count">Resposta do Webhook</div>
+              <button class="clear-btn" id="clearWebhookBtn">Limpar</button>
+            </div>
+            <div id="webhookMessageContent"></div>
+        </div>
+      </main>
+    </div>
+
+    <div id="agendamentoModal" class="modal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2>Agendar Envio</h2>
+            <span class="close" onclick="closeModal()">&times;</span>
+          </div>
+          <div class="modal-body">
+            <form id="agendamentoForm">
+              <input type="hidden" id="agendarProdutoId" />
+              <div class="form-group">
+                <label for="agendarData">Data</label>
+                <input type="date" id="agendarData" required />
+              </div>
+              <div class="form-group">
+                <label for="agendarHora">Hora</label>
+                <input type="time" id="agendarHora" required />
+              </div>
+              <div class="modal-footer">
+                <button type="submit" class="btn">Salvar Agendamento</button>
+              </div>
+            </form>
+          </div>
+        </div>
+    </div>
+
+    <div id="editarModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Produto Shopee</h2>
+                <span class="close" onclick="closeEditModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="editarForm">
+                    <input type="hidden" id="editarProdutoId" />
+                    <div class="form-group">
+                        <label for="editarImagemUrl">Link da Imagem</label>
+                        <input
+                            type="url"
+                            id="editarImagemUrl"
+                            placeholder="https://exemplo.com/imagem.jpg"
+                            oninput="updateImagePreview()"
+                            style="
+                                width: 100%;
+                                padding: 12px;
+                                border: 1px solid #ddd;
+                                border-radius: 8px;
+                                font-size: 14px;
+                            "
+                        />
+                        <small style="color: #666; margin-top: 5px; display: block;">
+                            Cole aqui o novo link da imagem do produto
+                        </small>
+
+                        <div id="imagePreviewContainer" style="margin-top: 15px; text-align: center;">
+                            <div id="imagePreviewLabel" style="font-weight: 500; margin-bottom: 8px; color: #333;">
+                                Preview da Imagem:
+                            </div>
+                            <div id="imagePreviewWrapper" style="
+                                border: 2px dashed #ddd;
+                                border-radius: 10px;
+                                padding: 20px;
+                                background-color: #fafafa;
+                                min-height: 200px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                            ">
+                                <img id="imagePreview" style="
+                                    max-width: 100%;
+                                    max-height: 200px;
+                                    border-radius: 8px;
+                                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                                    display: none;
+                                " alt="Preview da imagem" />
+                                <div id="imagePreviewPlaceholder" style="color: #999; font-style: italic;">
+                                    📷 Nenhuma imagem para mostrar
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editarMensagem">Mensagem Personalizada</label>
+                        <textarea
+                            id="editarMensagem"
+                            rows="8"
+                            placeholder="Digite a mensagem personalizada para este produto Shopee..."
+                            style="
+                                width: 100%;
+                                padding: 10px;
+                                font-size: 14px;
+                                border-radius: 10px;
+                                border: 2px solid #e1e8ed;
+                                resize: vertical;
+                                font-family: inherit;
+                            "
+                        ></textarea>
+                        <small style="color: #666; margin-top: 5px; display: block;">
+                            Esta será a mensagem enviada quando o produto for processado
+                        </small>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button
+                            type="button"
+                            class="btn-excluir"
+                            onclick="closeEditModal()"
+                            style="
+                                background-color: #6c757d;
+                                color: white;
+                                padding: 12px 24px;
+                                border: none;
+                                border-radius: 8px;
+                                cursor: pointer;
+                                font-size: 14px;
+                                margin-right: 10px;
+                            "
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            class="btn"
+                            style="
+                                background-color: #007bff;
+                                color: white;
+                                padding: 12px 24px;
+                                border: none;
+                                border-radius: 8px;
+                                cursor: pointer;
+                                font-size: 14px;
+                                font-weight: 600;
+                            "
+                        >
+                            Salvar Alterações
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        // JavaScript específico da Shopee
+        document.addEventListener('DOMContentLoaded', function() {
+            const shopeeSearchForm = document.getElementById('shopeeSearchForm');
+            const shopeeLinkForm = document.getElementById('shopeeLinkForm');
+            const loading = document.getElementById('loading');
+            const resultsSection = document.getElementById('resultsSection');
+            const produtoSection = document.getElementById('produtoSection');
+            const productsGrid = document.getElementById('productsGrid');
+            const produtoDetalhado = document.getElementById('produtoDetalhado');
+            const resultsCount = document.getElementById('resultsCount');
+            const clearBtn = document.getElementById('clearBtn');
+            const clearProdutoBtn = document.getElementById('clearProdutoBtn');
+
+            // Busca por palavra-chave
+            if (shopeeSearchForm) {
+                shopeeSearchForm.addEventListener('submit', async function(event) {
+                    event.preventDefault();
+                    const produto = document.getElementById('shopeeProduto').value.trim();
+
+                    if (!produto) {
+                        alert('Por favor, digite um produto para buscar');
+                        return;
+                    }
+
+                    showLoading();
+                    hideResults();
+
+                    try {
+                        const response = await fetch('/scrape_shopee', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ product_input: produto })
+                        });
+
+                        const data = await response.json();
+                        hideLoading();
+
+                        if (data.error) {
+                            showAlert(data.error, 'error');
+                        } else if (data && data.length > 0) {
+                            displayProducts(data);
+                        } else {
+                            showAlert('Nenhum produto encontrado', 'info');
+                        }
+                    } catch (error) {
+                        hideLoading();
+                        showAlert('Erro ao buscar produtos: ' + error.message, 'error');
+                    }
+                });
+            }
+
+            // Análise de link específico
+            if (shopeeLinkForm) {
+                shopeeLinkForm.addEventListener('submit', async function(event) {
+                    event.preventDefault();
+                    const url = document.getElementById('shopeeProdutoUrlSingle').value.trim();
+
+                    if (!url) {
+                        alert('Por favor, digite uma URL válida');
+                        return;
+                    }
+
+                    if (!url.includes('shopee.com.br')) {
+                        alert('Por favor, digite uma URL da Shopee válida');
+                        return;
+                    }
+
+                    showLoading();
+                    hideResults();
+
+                    try {
+                        const response = await fetch('/scrape_shopee', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ product_input: url })
+                        });
+
+                        const data = await response.json();
+                        hideLoading();
+
+                        if (data.error) {
+                            showAlert(data.error, 'error');
+                        } else if (data && data.length > 0) {
+                            displaySingleProduct(data[0]);
+                        } else {
+                            showAlert('Não foi possível extrair informações do produto', 'error');
+                        }
+                    } catch (error) {
+                        hideLoading();
+                        showAlert('Erro ao analisar produto: ' + error.message, 'error');
+                    }
+                });
+            }
+
+            // Funções auxiliares
+            function showLoading() {
+                loading.style.display = 'block';
+            }
+
+            function hideLoading() {
+                loading.style.display = 'none';
+            }
+
+            function hideResults() {
+                resultsSection.style.display = 'none';
+                produtoSection.style.display = 'none';
+            }
+
+            function displayProducts(products) {
+                productsGrid.innerHTML = '';
+                resultsCount.textContent = `${products.length} produto(s) encontrado(s)`;
+
+                products.forEach(product => {
+                    const productCard = createProductCard(product);
+                    productsGrid.appendChild(productCard);
+                });
+
+                resultsSection.style.display = 'block';
+            }
+
+            function displaySingleProduct(product) {
+                produtoDetalhado.innerHTML = '';
+                const productElement = createSingleProductDisplay(product);
+                produtoDetalhado.appendChild(productElement);
+                produtoSection.style.display = 'block';
+            }
+
+            function createProductCard(product) {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                if (product.tem_promocao) {
+                    card.classList.add('promocao');
+                }
+
+                card.innerHTML = `
+                    <div class="product-header">
+                        <div class="platform-badge" data-platform="Shopee">Shopee</div>
+                    </div>
+                    ${product.imagem ?
+                        `<img src="${product.imagem}" alt="${product.titulo}" class="product-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                         <div class="product-image placeholder" style="display: none;">📷</div>` :
+                        `<div class="product-image placeholder">📷</div>`
+                    }
+                    <h3 class="product-title">${product.titulo}</h3>
+                    <div class="product-price ${product.tem_promocao ? 'com-promocao' : ''}">
+                        ${product.preco_original ? `<div class="product-price-original">${product.preco_original}</div>` : ''}
+                        <div class="product-price-atual">${product.preco_atual}</div>
+                    </div>
+                    ${product.desconto ? `<span class="product-desconto">${product.desconto}% OFF</span>` : ''}
+                    ${product.loja ? `<p><strong>Loja:</strong> ${product.loja}</p>` : ''}
+                    ${product.nota ? `<p><em>${product.nota}</em></p>` : ''}
+                    <a href="${product.link}" target="_blank" class="product-link">Ver na Shopee</a>
+                `;
+
+                return card;
+            }
+
+            function createSingleProductDisplay(product) {
+                const container = document.createElement('div');
+                container.className = 'produto-detalhado';
+                if (product.tem_promocao) {
+                    container.classList.add('promocao');
+                }
+
+                container.innerHTML = `
+                    <div class="produto-header">
+                        <div class="produto-imagem">
+                            ${product.imagem ?
+                                `<img src="${product.imagem}" alt="${product.titulo}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                 <div class="image-placeholder" style="display: none;">📷</div>` :
+                                `<div class="image-placeholder">📷</div>`
+                            }
+                        </div>
+                        <div class="produto-info">
+                            <h2 class="produto-titulo">${product.titulo}</h2>
+                            <div class="produto-preco ${product.tem_promocao ? 'com-promocao' : ''}">
+                                ${product.preco_original ? `<div class="produto-preco-original">${product.preco_original}</div>` : ''}
+                                <div class="produto-preco-atual">${product.preco_atual}</div>
+                            </div>
+                            ${product.desconto ? `<span class="produto-desconto">${product.desconto}% OFF</span>` : ''}
+                            ${product.loja ? `<p><strong>Loja:</strong> ${product.loja}</p>` : ''}
+                            ${product.nota ? `<p><em>${product.nota}</em></p>` : ''}
+                        </div>
+                    </div>
+                    <a href="${product.link}" target="_blank" class="produto-link-externo">Ver na Shopee</a>
+                `;
+
+                return container;
+            }
+
+            function showAlert(message, type) {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${type}`;
+                alertDiv.textContent = message;
+
+                const mainContent = document.querySelector('.main-content');
+                mainContent.insertBefore(alertDiv, mainContent.firstChild);
+
+                setTimeout(() => {
+                    alertDiv.remove();
+                }, 5000);
+            }
+
+            // Limpar resultados
+            if (clearBtn) {
+                clearBtn.addEventListener('click', function() {
+                    resultsSection.style.display = 'none';
+                    productsGrid.innerHTML = '';
+                });
+            }
+
+            if (clearProdutoBtn) {
+                clearProdutoBtn.addEventListener('click', function() {
+                    produtoSection.style.display = 'none';
+                    produtoDetalhado.innerHTML = '';
+                });
+            }
+
+            // === FUNCIONALIDADE DE WEBHOOK ===
+            let shopeeProductQueue = [];
+
+            // Adicionar produto à fila
+            const shopeeAddProductBtn = document.getElementById('shopeeAddProductBtn');
+            const shopeeProductUrlQueue = document.getElementById('shopeeProductUrlQueue');
+            const shopeeAffiliateUrlQueue = document.getElementById('shopeeAffiliateUrlQueue');
+            const shopeeQueueList = document.getElementById('shopeeQueueList');
+            const shopeeQueueCount = document.getElementById('shopeeQueueCount');
+            const shopeeClearQueueBtn = document.getElementById('shopeeClearQueueBtn');
+            const shopeeWebhookForm = document.getElementById('shopeeWebhookForm');
+            const shopeeProcessCount = document.getElementById('shopeeProcessCount');
+            const webhookMessageSection = document.getElementById('webhookMessageSection');
+            const webhookMessageContent = document.getElementById('webhookMessageContent');
+            const clearWebhookBtn = document.getElementById('clearWebhookBtn');
+
+            if (shopeeAddProductBtn) {
+                shopeeAddProductBtn.addEventListener('click', function() {
+                    const productUrl = shopeeProductUrlQueue.value.trim();
+                    const affiliateUrl = shopeeAffiliateUrlQueue.value.trim();
+
+                    if (!productUrl) {
+                        alert('Por favor, insira o link do produto');
+                        return;
+                    }
+
+                    if (!productUrl.includes('shopee.com.br')) {
+                        alert('Por favor, insira uma URL válida da Shopee');
+                        return;
+                    }
+
+                    // Adicionar à fila
+                    const queueItem = {
+                        id: Date.now(),
+                        productUrl: productUrl,
+                        affiliateUrl: affiliateUrl || productUrl,
+                        title: extractProductTitle(productUrl)
+                    };
+
+                    shopeeProductQueue.push(queueItem);
+                    updateQueueDisplay();
+
+                    // Limpar campos
+                    shopeeProductUrlQueue.value = '';
+                    shopeeAffiliateUrlQueue.value = '';
+
+                    showAlert('Produto adicionado à fila!', 'success');
+                });
+            }
+
+            // Limpar fila
+            if (shopeeClearQueueBtn) {
+                shopeeClearQueueBtn.addEventListener('click', function() {
+                    shopeeProductQueue = [];
+                    updateQueueDisplay();
+                    showAlert('Fila limpa!', 'info');
+                });
+            }
+
+            // Processar fila (webhook)
+            if (shopeeWebhookForm) {
+                shopeeWebhookForm.addEventListener('submit', async function(event) {
+                    event.preventDefault();
+
+                    if (shopeeProductQueue.length === 0) {
+                        alert('Adicione produtos à fila antes de processar');
+                        return;
+                    }
+
+                    showLoading();
+                    hideResults();
+
+                    const results = [];
+                    let successCount = 0;
+                    let errorCount = 0;
+
+                    for (let i = 0; i < shopeeProductQueue.length; i++) {
+                        const item = shopeeProductQueue[i];
+
+                        try {
+                            console.log(`Processando item ${i + 1}/${shopeeProductQueue.length}: ${item.productUrl}`);
+
+                            const response = await fetch('/webhook/processar', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    url_produto: item.productUrl,
+                                    afiliado_link: item.affiliateUrl
+                                })
+                            });
+
+                            const data = await response.json();
+
+                            if (data.success) {
+                                results.push({
+                                    ...item,
+                                    success: true,
+                                    message: data.final_message,
+                                    produto: data.produto,
+                                    imageUrl: data.image_url
+                                });
+                                successCount++;
+                            } else {
+                                results.push({
+                                    ...item,
+                                    success: false,
+                                    error: data.error || 'Erro desconhecido'
+                                });
+                                errorCount++;
+                            }
+                        } catch (error) {
+                            console.error('Erro ao processar item:', error);
+                            results.push({
+                                ...item,
+                                success: false,
+                                error: error.message
+                            });
+                            errorCount++;
+                        }
+
+                        // Pequena pausa entre requests
+                        if (i < shopeeProductQueue.length - 1) {
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        }
+                    }
+
+                    hideLoading();
+                    displayWebhookResults(results, successCount, errorCount);
+
+                    // Limpar fila após processamento
+                    shopeeProductQueue = [];
+                    updateQueueDisplay();
+                });
+            }
+
+            // Limpar resultados do webhook
+            if (clearWebhookBtn) {
+                clearWebhookBtn.addEventListener('click', function() {
+                    webhookMessageSection.style.display = 'none';
+                    webhookMessageContent.innerHTML = '';
+                });
+            }
+
+            function extractProductTitle(url) {
+                // Extrair título básico da URL da Shopee
+                const urlParts = url.split('/');
+                const productPart = urlParts.find(part => part.includes('-i.'));
+                if (productPart) {
+                    return productPart.split('-i.')[0].replace(/-/g, ' ');
+                }
+                return 'Produto Shopee';
+            }
+
+            function updateQueueDisplay() {
+                shopeeQueueCount.textContent = `(${shopeeProductQueue.length})`;
+                shopeeProcessCount.textContent = shopeeProductQueue.length;
+
+                if (shopeeProductQueue.length === 0) {
+                    shopeeQueueList.innerHTML = `
+                        <div class="queue-empty">
+                            <span class="empty-icon">📦</span>
+                            <p>Nenhum produto na fila</p>
+                            <small>Adicione produtos usando o formulário acima</small>
+                        </div>
+                    `;
+                } else {
+                    shopeeQueueList.innerHTML = shopeeProductQueue.map(item => `
+                        <div class="queue-item">
+                            <div class="queue-item-icon">🛍️</div>
+                            <div class="queue-item-content">
+                                <div class="queue-item-title">${item.title}</div>
+                                <div class="queue-item-subtitle">${item.productUrl}</div>
+                                ${item.affiliateUrl !== item.productUrl ? `<div class="queue-item-subtitle">Afiliado: ${item.affiliateUrl}</div>` : ''}
+                            </div>
+                            <div class="queue-item-actions">
+                                <button class="remove-item-btn" onclick="removeFromQueue(${item.id})">🗑️</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            function displayWebhookResults(results, successCount, errorCount) {
+                let html = `
+                    <div class="webhook-message-container ${successCount > 0 ? 'success' : 'error'}">
+                        <div class="webhook-message-header">
+                            <h3>📊 Resultado do Processamento</h3>
+                            <div class="status ${successCount > 0 ? 'success' : 'error'}">
+                                ✅ ${successCount} sucesso(s) | ❌ ${errorCount} erro(s)
+                            </div>
+                        </div>
+                `;
+
+                results.forEach((result, index) => {
+                    if (result.success) {
+                        html += `
+                            <div style="margin: 20px 0; padding: 20px; background: #d4edda; border-radius: 10px; border: 1px solid #c3e6cb;">
+                                <h4 style="color: #155724; margin-bottom: 10px;">✅ ${result.title}</h4>
+                                ${result.imageUrl ? `
+                                    <div class="webhook-image">
+                                        <img src="${result.imageUrl}" alt="Produto" style="max-width: 200px; border-radius: 8px;">
+                                    </div>
+                                ` : ''}
+                                <div style="margin: 15px 0;">
+                                    <strong>Mensagem enviada:</strong>
+                                    <pre style="background: #2c3e50; color: white; padding: 15px; border-radius: 8px; white-space: pre-wrap; margin-top: 10px;">${result.message}</pre>
+                                </div>
+                                <button class="copy-btn" onclick="copyToClipboard(\`${result.message.replace(/`/g, '\\`')}\`)">
+                                    📋 Copiar Mensagem
+                                </button>
+                            </div>
+                        `;
+                    } else {
+                        html += `
+                            <div style="margin: 20px 0; padding: 20px; background: #f8d7da; border-radius: 10px; border: 1px solid #f5c6cb;">
+                                <h4 style="color: #721c24; margin-bottom: 10px;">❌ ${result.title}</h4>
+                                <p style="color: #721c24;"><strong>Erro:</strong> ${result.error}</p>
+                                <p style="color: #6c757d; font-size: 14px;">URL: ${result.productUrl}</p>
+                            </div>
+                        `;
+                    }
+                });
+
+                html += '</div>';
+                webhookMessageContent.innerHTML = html;
+                webhookMessageSection.style.display = 'block';
+            }
+
+            // Função global para remover item da fila
+            window.removeFromQueue = function(itemId) {
+                shopeeProductQueue = shopeeProductQueue.filter(item => item.id !== itemId);
+                updateQueueDisplay();
+                showAlert('Produto removido da fila', 'info');
+            };
+
+            // Função global para copiar mensagem
+            window.copyToClipboard = function(text) {
+                navigator.clipboard.writeText(text).then(function() {
+                    showAlert('Mensagem copiada para a área de transferência!', 'success');
+                }, function(err) {
+                    console.error('Erro ao copiar: ', err);
+                    showAlert('Erro ao copiar mensagem', 'error');
+                });
+            };
+
+            // Inicializar display da fila
+            updateQueueDisplay();
+        });
+    </script>
+</body>
+</html>

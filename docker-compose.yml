@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  scraper-promo:
+    build: .
+    container_name: scraper-promo
+    ports:
+      - "80:5000"
+    environment:
+      # WhatsApp Monitor
+      - WHATSAPP_MONITOR_URL=http://whatsapp-monitor:3001
+      - BAILEYS_API_URL=http://whatsapp-monitor:3001
+
+      # Supabase
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - SUPABASE_BUCKET_NAME=${SUPABASE_BUCKET_NAME}
+
+      # Webhook
+      - WEBHOOK_URL=${WEBHOOK_URL}
+
+      # User Agent
+      - USER_AGENT=${USER_AGENT}
+
+      # Proxy (opcional)
+      - USE_PROXY=${USE_PROXY}
+      - PROXY_HOST=${PROXY_HOST}
+      - PROXY_PORT=${PROXY_PORT}
+      - PROXY_USERNAME=${PROXY_USERNAME}
+      - PROXY_PASSWORD=${PROXY_PASSWORD}
+
+      # ScraperAPI (para Amazon)
+      - SCRAPERAPI_KEY=${SCRAPERAPI_KEY}
+
+      # IDs de Afiliado
+      - AMAZON_ASSOCIATES_TAG=${AMAZON_ASSOCIATES_TAG}
+      - MERCADOLIVRE_AFFILIATE_ID=${MERCADOLIVRE_AFFILIATE_ID}
+      - SHOPEE_AFFILIATE_ID=${SHOPEE_AFFILIATE_ID}
+      - MAGAZINELUIZA_AFFILIATE_ID=${MAGAZINELUIZA_AFFILIATE_ID}
+      - AMERICANAS_AFFILIATE_ID=${AMERICANAS_AFFILIATE_ID}
+
+      # Mercado Livre Cookies (para geração de links /sec/)
+      - ML_CSRF_TOKEN=${ML_CSRF_TOKEN}
+      - ML_COOKIE__CSRF=${ML_COOKIE__CSRF}
+      - ML_COOKIE_ORGNICKP=${ML_COOKIE_ORGNICKP}
+      - ML_COOKIE_ORGUSERIDP=${ML_COOKIE_ORGUSERIDP}
+      - ML_COOKIE_ORGUSERID=${ML_COOKIE_ORGUSERID}
+      - ML_COOKIE__MLDATASESSIONID=${ML_COOKIE__MLDATASESSIONID}
+      - ML_COOKIE__D2ID=${ML_COOKIE__D2ID}
+      - ML_COOKIE_SSID=${ML_COOKIE_SSID}
+      - ML_COOKIE_FTID=${ML_COOKIE_FTID}
+      - ML_COOKIE_NSA_ROTOK=${ML_COOKIE_NSA_ROTOK}
+      - ML_COOKIE_X_MELI_SESSION_ID=${ML_COOKIE_X_MELI_SESSION_ID}
+      - ML_COOKIE_CP=${ML_COOKIE_CP}
+
+      # WhatsApp Clone System
+      - FLASK_API_TOKEN=${FLASK_API_TOKEN}
+
+      # Flask
+      - PORT=5000
+      - FLASK_ENV=production
+
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - scraper-network
+
+  # WhatsApp Monitor - QR Code + Processamento de mensagens
+  whatsapp-monitor:
+    build: ./whatsapp-monitor
+    container_name: whatsapp-monitor
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - FLASK_API=http://scraper-promo:5000
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+    volumes:
+      # Persistir sessão do WhatsApp
+      - whatsapp-session:/app/auth_info_baileys
+    restart: unless-stopped
+    networks:
+      - scraper-network
+
+networks:
+  scraper-network:
+    driver: bridge
+
+volumes:
+  whatsapp-session:
+    driver: local

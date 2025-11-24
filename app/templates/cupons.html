@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Cupons - Promo Brothers</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .cupons-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .cupom-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .cupom-info {
+            flex: 1;
+        }
+        .cupom-codigo {
+            font-size: 20px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        .cupom-detalhes {
+            color: #666;
+            font-size: 14px;
+        }
+        .cupom-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        .cupom-status.ativo {
+            background: #10b981;
+            color: white;
+        }
+        .cupom-status.inativo {
+            background: #ef4444;
+            color: white;
+        }
+        .cupom-acoes {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .modal-content {
+            background: rgb(73, 73, 73);
+            max-width: 500px;
+            margin: 100px auto;
+            padding: 30px;
+            border-radius: 12px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="cupons-container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+            <h1>🎟️ Gerenciar Cupons</h1>
+            <button class="btn btn-primary" onclick="abrirModalNovoCupom()">➕ Novo Cupom</button>
+        </div>
+
+        <div id="listaCupons">
+            <!-- Cupons serão carregados aqui -->
+        </div>
+    </div>
+
+    <!-- Modal Novo/Editar Cupom -->
+    <div id="modalCupom" class="modal">
+        <div class="modal-content">
+            <h2 id="modalTitulo">Novo Cupom</h2>
+            <form id="formCupom" onsubmit="salvarCupom(event)">
+                <input type="hidden" id="cupomId">
+
+                <div class="form-group">
+                    <label for="codigo">Código do Cupom</label>
+                    <input type="text" id="codigo" required placeholder="Ex: PROMO10">
+                </div>
+
+                <div class="form-group">
+                    <label for="porcentagem">Porcentagem (%)</label>
+                    <input type="number" id="porcentagem" min="0" max="100" step="0.01" required placeholder="Ex: 10">
+                </div>
+
+                <div class="form-group">
+                    <label for="limite_valor">Limite de Desconto (R$)</label>
+                    <input type="number" id="limite_valor" min="0" step="0.01" required placeholder="Ex: 30.00">
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn" onclick="fecharModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        // Carregar cupons ao iniciar
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarCupons();
+        });
+
+        async function carregarCupons() {
+            try {
+                const response = await fetch('/cupons');
+                const data = await response.json();
+
+                if (data.success) {
+                    renderizarCupons(data.cupons);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar cupons:', error);
+                alert('Erro ao carregar cupons');
+            }
+        }
+
+        function renderizarCupons(cupons) {
+            const lista = document.getElementById('listaCupons');
+
+            if (cupons.length === 0) {
+                lista.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">Nenhum cupom cadastrado</p>';
+                return;
+            }
+
+            lista.innerHTML = cupons.map(cupom => `
+                <div class="cupom-card">
+                    <div class="cupom-info">
+                        <div class="cupom-codigo">
+                            ${cupom.codigo}
+                            <span class="cupom-status ${cupom.ativo ? 'ativo' : 'inativo'}">
+                                ${cupom.ativo ? 'ATIVO' : 'INATIVO'}
+                            </span>
+                        </div>
+                        <div class="cupom-detalhes">
+                            ${cupom.porcentagem}% de desconto • Limite: R$ ${cupom.limite_valor.toFixed(2)}
+                        </div>
+                    </div>
+                    <div class="cupom-acoes">
+                        <button class="btn btn-primary" onclick="editarCupom(${cupom.id})">✏️ Editar</button>
+                        <button class="btn ${cupom.ativo ? 'btn-danger' : 'btn-success'}"
+                                onclick="toggleCupom(${cupom.id}, ${!cupom.ativo})">
+                            ${cupom.ativo ? '⏸️ Desativar' : '▶️ Ativar'}
+                        </button>
+                        <button class="btn btn-danger" onclick="removerCupom(${cupom.id})">🗑️ Excluir</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function abrirModalNovoCupom() {
+            document.getElementById('modalTitulo').textContent = 'Novo Cupom';
+            document.getElementById('formCupom').reset();
+            document.getElementById('cupomId').value = '';
+            document.getElementById('modalCupom').style.display = 'block';
+        }
+
+        async function editarCupom(id) {
+            try {
+                const response = await fetch('/cupons');
+                const data = await response.json();
+                const cupom = data.cupons.find(c => c.id === id);
+
+                if (cupom) {
+                    document.getElementById('modalTitulo').textContent = 'Editar Cupom';
+                    document.getElementById('cupomId').value = cupom.id;
+                    document.getElementById('codigo').value = cupom.codigo;
+                    document.getElementById('porcentagem').value = cupom.porcentagem;
+                    document.getElementById('limite_valor').value = cupom.limite_valor;
+                    document.getElementById('modalCupom').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar cupom:', error);
+                alert('Erro ao carregar cupom');
+            }
+        }
+
+        async function salvarCupom(event) {
+            event.preventDefault();
+
+            const id = document.getElementById('cupomId').value;
+            const codigo = document.getElementById('codigo').value;
+            const porcentagem = parseFloat(document.getElementById('porcentagem').value);
+            const limite_valor = parseFloat(document.getElementById('limite_valor').value);
+
+            try {
+                const url = id ? `/cupons/${id}` : '/cupons';
+                const method = id ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ codigo, porcentagem, limite_valor })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(id ? 'Cupom atualizado com sucesso!' : 'Cupom criado com sucesso!');
+                    fecharModal();
+                    carregarCupons();
+                } else {
+                    alert('Erro: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Erro ao salvar cupom:', error);
+                alert('Erro ao salvar cupom');
+            }
+        }
+
+        async function toggleCupom(id, ativo) {
+            try {
+                const response = await fetch(`/cupons/${id}/toggle`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ ativo })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    carregarCupons();
+                } else {
+                    alert('Erro: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Erro ao alternar status:', error);
+                alert('Erro ao alternar status');
+            }
+        }
+
+        async function removerCupom(id) {
+            if (!confirm('Tem certeza que deseja excluir este cupom?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/cupons/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Cupom removido com sucesso!');
+                    carregarCupons();
+                } else {
+                    alert('Erro: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Erro ao remover cupom:', error);
+                alert('Erro ao remover cupom');
+            }
+        }
+
+        function fecharModal() {
+            document.getElementById('modalCupom').style.display = 'none';
+        }
+
+        // Fechar modal ao clicar fora
+        window.onclick = function(event) {
+            const modal = document.getElementById('modalCupom');
+            if (event.target === modal) {
+                fecharModal();
+            }
+        }
+    </script>
+</body>
+</html>

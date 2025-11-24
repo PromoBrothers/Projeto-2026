@@ -1,0 +1,389 @@
+# ============================================================================
+# .gitignore - PROJETO ACADÊMICO
+# ============================================================================
+# Este arquivo garante que credenciais e arquivos sensíveis não sejam
+# commitados no repositório Git.
+# ============================================================================
+
+# ============================================================================
+# VARIÁVEIS DE AMBIENTE E CREDENCIAIS (NUNCA COMMITAR!)
+# ============================================================================
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+credentials.json
+secrets.json
+
+# ============================================================================
+# PYTHON
+# ============================================================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# ============================================================================
+# NODE.JS / WHATSAPP MONITOR
+# ============================================================================
+# Dependencies
+node_modules/
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env.test
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+public
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless/
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# ============================================================================
+# WHATSAPP AUTHENTICATION (NUNCA COMMITAR!)
+# ============================================================================
+whatsapp-monitor/auth_info_baileys/
+auth_info_baileys/
+*.baileys_*
+*.session
+*.creds.json
+
+# ============================================================================
+# LOGS E ARQUIVOS TEMPORÁRIOS
+# ============================================================================
+*.log
+logs/
+scraping.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# ============================================================================
+# SISTEMA OPERACIONAL
+# ============================================================================
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ============================================================================
+# IDEs E EDITORES
+# ============================================================================
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+Session.vim
+Temporary_Items
+.netrwhist
+*~
+tags
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Eclipse
+.metadata
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.settings/
+.loadpath
+.recommenders
+.externalToolBuilders/
+*.launch
+*.pydevproject
+.cproject
+.classpath
+.factorypath
+.buildpath
+.target
+.tern-project
+.texlipse
+.springBeans
+.recommenders/
+.apt_generated/
+.apt_generated_test/
+
+# ============================================================================
+# BANCOS DE DADOS LOCAIS
+# ============================================================================
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# ============================================================================
+# ARQUIVOS DE TESTE
+# ============================================================================
+test_*.py
+debug_*.py
+*_test.py
+test_*.html
+debug_*.html
+teste_*.py
+experimental_*.py
+
+# ============================================================================
+# BACKUPS
+# ============================================================================
+*.bak
+*.backup
+*.old
+*~
+
+# ============================================================================
+# ARQUIVOS ESPECÍFICOS DO PROJETO
+# ============================================================================
+# Arquivos de cookies temporários (se houver)
+cookies/
+*.cookies
+*.pkl
+
+# Imagens temporárias baixadas
+temp_images/
+downloads/
+
+# Cache do projeto
+.cache/
+cache/
+
+# Arquivos de configuração local
+config.local.py
+settings.local.py
+
+# ============================================================================
+# ARQUIVOS DE DOCUMENTAÇÃO TEMPORÁRIOS
+# ============================================================================
+*.swp
+*.swo
+*~
+
+# ============================================================================
+# ARQUIVOS QUE DEVEM SER COMMITADOS
+# ============================================================================
+# Importante: Os seguintes arquivos DEVEM ser incluídos no Git:
+# - .env.example (template sem credenciais)
+# - requirements.txt (dependências Python)
+# - package.json (dependências Node)
+# - README.md (documentação)
+# - .gitignore (este arquivo)
+
+# ============================================================================
+# FIM DO .gitignore
+# ============================================================================
