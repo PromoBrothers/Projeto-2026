@@ -26,6 +26,9 @@ from .monitoring import metrics_collector, health_checker, alert_manager
 from .cache_manager import cache_manager
 from .validators import product_validator
 
+# Importa funções de afiliados do Mercado Livre
+from .ml_affiliate import expandir_link_curto_ml
+
 main_bp = Blueprint('main', __name__)
 
 # Credenciais de login (em produção, use variáveis de ambiente)
@@ -229,6 +232,9 @@ def substituir_links_afiliado(mensagem):
     Suporta: Amazon, Mercado Livre, Shopee, Magazine Luiza, Americanas
 
     TAMBÉM substitui links de grupos/WhatsApp/Telegram pelo link oficial do Promo Brothers.
+
+    NOVO: Detecta links curtos de afiliado ML (/sec/...) e os expande para obter o produto real,
+    gerando comissão para o criador original e depois criando seu próprio link de afiliado.
     """
     # Tags de afiliado do .env
     amazon_tag = os.getenv("AMAZON_ASSOCIATES_TAG", "promobrothers-20")
@@ -265,6 +271,28 @@ def substituir_links_afiliado(mensagem):
         if is_grupo_link and 'promobrothers' not in url_lower:
             plataforma = 'Link do Grupo'
             url_modificada = LINK_GRUPO_OFICIAL
+
+        # PASSO 0.5: Detectar links curtos de afiliado ML (/sec/...) e expandir
+        elif 'mercadolivre.com/sec/' in url_lower or 'mercadolibre.com/sec/' in url_lower:
+            logger.info(f'🔗 Detectado link curto de afiliado ML: {url}')
+
+            # Expandir o link curto para obter a URL real do produto
+            url_produto_real = expandir_link_curto_ml(url)
+
+            if url_produto_real:
+                logger.info(f'✅ Link expandido: {url_produto_real}')
+                # Usar a URL real do produto como base para gerar nosso afiliado
+                url_limpo = extrair_link_limpo_produto(url_produto_real)
+                plataforma = 'Mercado Livre (clonado)'
+
+                # Aplicar nosso afiliado
+                if ml_affiliate and ml_affiliate != "seu-id-mercadolivre":
+                    url_modificada = aplicar_afiliado_ml(url_limpo)
+                else:
+                    url_modificada = url_limpo
+            else:
+                logger.warning('⚠️ Não foi possível expandir o link curto. Mantendo original.')
+                url_modificada = url
 
         # PASSO 1: Extrair link limpo do produto (remove parâmetros de afiliado de terceiros)
         elif 'amazon.com' in url_lower or 'amzn.to' in url_lower or 'mercadolivre.com' in url_lower or 'shopee.com' in url_lower:

@@ -8,6 +8,8 @@ import logging
 import requests
 from typing import Optional, Dict
 import json
+from bs4 import BeautifulSoup
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -281,6 +283,124 @@ class MercadoLivreAffiliate:
 
 # Instância global para uso fácil
 ml_affiliate = MercadoLivreAffiliate()
+
+
+def expandir_link_curto_ml(short_url: str) -> Optional[str]:
+    """
+    Expande um link curto de afiliado do Mercado Livre (https://mercadolivre.com/sec/...)
+    acessando a página social e extraindo o link real do produto.
+
+    Isso permite "clonar eticamente" - você visita o link de afiliado do criador original
+    (gerando comissão para ele), e depois cria seu próprio link de afiliado.
+
+    Args:
+        short_url: Link curto de afiliado (ex: https://mercadolivre.com/sec/1citUM9)
+
+    Returns:
+        URL real do produto ou None se falhar
+    """
+    try:
+        # Validar se é realmente um link curto ML
+        if not ('mercadolivre.com/sec/' in short_url or 'mercadolibre.com/sec/' in short_url):
+            logger.warning(f'⚠️ URL não é um link curto ML: {short_url}')
+            return None
+
+        logger.info(f'🔗 Expandindo link curto ML: {short_url}')
+
+        # Headers para simular navegador
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Referer': 'https://www.mercadolivre.com.br/',
+        }
+
+        # PASSO 1: Acessar o link curto (gera comissão para o criador original)
+        response = requests.get(short_url, headers=headers, timeout=10, allow_redirects=True)
+        response.raise_for_status()
+
+        logger.info(f'✅ Link acessado. URL final: {response.url[:100]}...')
+
+        # PASSO 2: Parsear HTML da página social
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # PASSO 3: Buscar o botão "Ir para o produto" usando múltiplos seletores
+        product_link = None
+
+        # Seletores possíveis para o link do produto
+        seletores = [
+            # Seletor específico fornecido pelo usuário
+            '#root-app > div > div > div.rl-social-desktop_container > div.rl-social-desktop_content > section > section > section > div > ul > div > div.poly-card__content > div.poly-content > div:nth-child(2) > div > div > a',
+
+            # Seletores alternativos mais genéricos
+            'a[href*="/p/MLB"]',  # Links de produto (/p/MLB...)
+            'a[href*="/MLB-"]',   # Links de produto (/MLB-...)
+            '.poly-card__content a[href*="MLB"]',
+            '.poly-content a[href*="MLB"]',
+            'a.andes-button--loud',  # Botões principais
+            'a[data-testid="product-link"]',
+            'a.ui-pdp-action-modal__link',
+        ]
+
+        for seletor in seletores:
+            element = soup.select_one(seletor)
+            if element and element.get('href'):
+                href = element.get('href')
+
+                # Validar se é realmente um link de produto
+                if '/p/MLB' in href or '/MLB-' in href:
+                    # Construir URL completa se for relativa
+                    if href.startswith('http'):
+                        product_link = href
+                    else:
+                        product_link = f"https://www.mercadolivre.com.br{href}"
+
+                    logger.info(f'✅ Link do produto encontrado usando seletor: {seletor}')
+                    logger.info(f'   URL: {product_link}')
+                    break
+
+        # PASSO 4: Se não encontrou com seletores, buscar em todos os links
+        if not product_link:
+            logger.warning('⚠️ Seletores não encontraram o link. Buscando em todos os links...')
+
+            all_links = soup.find_all('a', href=True)
+            for link in all_links:
+                href = link.get('href', '')
+                if ('/p/MLB' in href or '/MLB-' in href) and 'mercadolivre.com.br' in href:
+                    # Limpar parâmetros desnecessários
+                    product_link = href.split('#')[0].split('?')[0]
+                    if product_link.startswith('http'):
+                        logger.info(f'✅ Link do produto encontrado (busca geral): {product_link}')
+                        break
+
+        # PASSO 5: Limpar URL do produto (remover parâmetros de afiliado)
+        if product_link:
+            # Remover parâmetros de rastreamento/afiliado do link original
+            product_link = re.sub(r'[?&]pdp_filters.*', '', product_link)
+            product_link = re.sub(r'[?&]tracking_id.*', '', product_link)
+            product_link = re.sub(r'[?&]c_id.*', '', product_link)
+            product_link = re.sub(r'[?&]c_uid.*', '', product_link)
+            product_link = product_link.split('#')[0]  # Remover âncoras
+
+            logger.info(f'✅ Link do produto limpo: {product_link}')
+            return product_link
+
+        logger.warning('❌ Não foi possível encontrar o link do produto na página social')
+        return None
+
+    except requests.exceptions.Timeout:
+        logger.error('❌ Timeout ao acessar link curto ML')
+        return None
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f'❌ Erro ao acessar link curto ML: {str(e)}')
+        return None
+
+    except Exception as e:
+        logger.error(f'❌ Erro inesperado ao expandir link curto ML: {str(e)}')
+        import traceback
+        logger.error(traceback.format_exc())
+        return None
 
 
 def gerar_link_afiliado_ml(product_url: str) -> Optional[str]:

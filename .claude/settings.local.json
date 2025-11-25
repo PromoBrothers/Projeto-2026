@@ -104,7 +104,8 @@
       "Bash(START_WHATSAPP.bat)",
       "Bash(if exist \"c:\\Users\\Gabriel\\Documents\\PROJETO-V4-ATUALIZADA\\test_amazon_robusto.py\" del \"c:\\Users\\Gabriel\\Documents\\PROJETO-V4-ATUALIZADA\\test_amazon_robusto.py\")",
       "Bash(if exist test_ml_affiliate_debug.py del test_ml_affiliate_debug.py)",
-      "Bash(if exist test_clone_ml_debug.py del test_clone_ml_debug.py)"
+      "Bash(if exist test_clone_ml_debug.py del test_clone_ml_debug.py)",
+      "Bash(.venvScriptspython.exe test_expandir_link_ml.py)"
     ],
     "deny": [],
     "ask": []
