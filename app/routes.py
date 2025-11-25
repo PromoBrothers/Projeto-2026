@@ -12,7 +12,7 @@ import re
 import logging
 
 
-WHATSAPP_MONITOR_URL = os.getenv('WHATSAPP_MONITOR_URL', 'http://localhost:3001')# Criar logger
+WHATSAPP_MONITOR_URL = os.getenv('WHATSAPP_MONITOR_URL', 'http://qrcode:3001')# Criar logger
 logger = logging.getLogger(__name__)
 
 # Importa as funções dos outros módulos
@@ -1521,7 +1521,7 @@ def whatsapp_logout():
     """Proxy para fazer logout do WhatsApp"""
     try:
         # O valor de WHATSAPP_MONITOR_URL já foi corrigido no topo do arquivo.
-        WHATSAPP_URL = os.getenv('WHATSAPP_MONITOR_URL', 'http://localhost:3001')
+        WHATSAPP_URL = os.getenv('WHATSAPP_MONITOR_URL', 'http://qrcode:3001')
 
         # Constrói a URL de forma segura (garantindo o scheme 'http://')
         full_url = f'{WHATSAPP_URL}/logout'
